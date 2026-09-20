@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧工地可视化看板</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= 顶部标题栏 ================= -->
+  <header id="header">
+    <div class="h-left">
+      <div class="logo">智</div>
+      <div class="title-wrap">
+        <h1>智慧工地可视化看板</h1>
+        <p>滨江科技园二期项目 · 总包：中建八局华东公司</p>
+      </div>
+    </div>
+    <div class="h-center">
+      <div class="kpi-chip"><span class="k-label">在场人数</span><span class="k-value" id="kpiWorkers">--</span><span class="k-unit">人</span></div>
+      <div class="kpi-chip"><span class="k-label">塔吊运行</span><span class="k-value" id="kpiCrane">2/2</span><span class="k-unit">台</span></div>
+      <div class="kpi-chip"><span class="k-label">今日报警</span><span class="k-value warn" id="kpiAlarm">0</span><span class="k-unit">次</span></div>
+      <div class="kpi-chip"><span class="k-label">喷淋系统</span><span class="k-value" id="kpiSpray">关闭</span><span class="k-unit" id="kpiSprayDot"></span></div>
+    </div>
+    <div class="h-right">
+      <div class="weather">☀ 晴 26℃ · 东风3级</div>
+      <div class="datetime">
+        <span id="dateText">----年--月--日</span>
+        <span id="weekText">星期-</span>
+        <span id="clock" class="clock">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= 主区域 ================= -->
+  <main id="main">
+
+    <!-- 左列：进度甘特图 + 环境监测 -->
+    <section class="col col-l">
+      <div class="panel" id="panelGantt">
+        <div class="panel-title">
+          <span class="t-icon">▦</span>项目进度甘特图
+          <div class="legend">
+            <i class="lg plan"></i>计划
+            <i class="lg ok"></i>正常
+            <i class="lg warn"></i>滞后&lt;10%
+            <i class="lg danger"></i>滞后≥10%
+          </div>
+        </div>
+        <div class="panel-body"><div id="ganttChart" class="chart"></div></div>
+      </div>
+
+      <div class="panel" id="panelEnv">
+        <div class="panel-title">
+          <span class="t-icon">☁</span>环境监测
+          <span class="sub">PM2.5 / 噪声 / 扬尘 实时数据</span>
+          <div class="spray-state" id="sprayState">
+            <i class="dot"></i><span class="txt">喷淋系统：关闭</span>
+          </div>
+        </div>
+        <div class="panel-body env-body">
+          <div class="env-cards">
+            <div class="env-card" id="cardPm25">
+              <div class="e-name">PM2.5</div>
+              <div class="e-val"><b id="vPm25">--</b><span>μg/m³</span></div>
+              <div class="e-limit">限值 75</div>
+              <div class="e-status ok">正常</div>
+            </div>
+            <div class="env-card" id="cardNoise">
+              <div class="e-name">噪声</div>
+              <div class="e-val"><b id="vNoise">--</b><span>dB</span></div>
+              <div class="e-limit">限值 70（昼）</div>
+              <div class="e-status ok">正常</div>
+            </div>
+            <div class="env-card" id="cardPm10">
+              <div class="e-name">扬尘 PM10</div>
+              <div class="e-val"><b id="vPm10">--</b><span>μg/m³</span></div>
+              <div class="e-limit">限值 150</div>
+              <div class="e-status ok">正常</div>
+            </div>
+          </div>
+          <div id="envChart" class="chart env-chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 中列：人员定位 + 班组出勤 -->
+    <section class="col col-m">
+      <div class="panel" id="panelMap">
+        <div class="panel-title">
+          <span class="t-icon">◉</span>施工人员定位
+          <span class="sub">按标段实时分布 · 数据每 4 秒刷新</span>
+          <div class="crew-legend" id="crewLegend"></div>
+        </div>
+        <div class="panel-body map-body">
+          <svg id="siteMap" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <pattern id="gridPat" width="30" height="30" patternUnits="userSpaceOnUse">
+                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(0,180,255,0.07)" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="900" height="560" fill="url(#gridPat)" rx="6"/>
+            <rect x="4" y="4" width="892" height="552" fill="none" stroke="rgba(0,228,255,0.25)" stroke-width="1.5" rx="6"/>
+
+            <!-- 标段A -->
+            <g class="zone" id="zoneA">
+              <rect class="zone-rect" x="40" y="40" width="380" height="220" rx="6"/>
+              <rect class="bld" x="150" y="90" width="160" height="110" rx="4"/>
+              <text class="bld-txt" x="230" y="150">1#楼</text>
+              <text class="zone-name" x="56" y="66">标段A · 主体结构</text>
+              <g class="zone-badge" transform="translate(340,52)">
+                <rect width="72" height="24" rx="12"/>
+                <text x="36" y="16" id="cntA">0人</text>
+              </g>
+            </g>
+            <!-- 标段B -->
+            <g class="zone" id="zoneB">
+              <rect class="zone-rect" x="480" y="40" width="380" height="220" rx="6"/>
+              <rect class="bld" x="590" y="90" width="160" height="110" rx="4"/>
+              <text class="bld-txt" x="670" y="150">2#楼</text>
+              <text class="zone-name" x="496" y="66">标段B · 地下室结构</text>
+              <g class="zone-badge" transform="translate(780,52)">
+                <rect width="72" height="24" rx="12"/>
+                <text x="36" y="16" id="cntB">0人</text>
+              </g>
+            </g>
+            <!-- 标段C -->
+            <g class="zone" id="zoneC">
+              <rect class="zone-rect" x="40" y="300" width="380" height="220" rx="6"/>
+              <rect class="bld" x="150" y="355" width="160" height="110" rx="4"/>
+              <text class="bld-txt" x="230" y="415">3#楼</text>
+              <text class="zone-name" x="56" y="326">标段C · 基础施工</text>
+              <g class="zone-badge" transform="translate(340,312)">
+                <rect width="72" height="24" rx="12"/>
+                <text x="36" y="16" id="cntC">0人</text>
+              </g>
+            </g>
+            <!-- 加工区 -->
+            <g class="zone" id="zoneD">
+              <rect class="zone-rect" x="480" y="300" width="240" height="220" rx="6"/>
+              <rect class="bld" x="510" y="350" width="80" height="120" rx="4"/>
+              <rect class="bld" x="610" y="350" width="80" height="120" rx="4"/>
+              <text class="bld-txt" x="550" y="415" style="font-size:13px">钢筋棚</text>
+              <text class="bld-txt" x="650" y="415" style="font-size:13px">木工棚</text>
+              <text class="zone-name" x="496" y="326">加工区</text>
+              <g class="zone-badge" transform="translate(640,312)">
+                <rect width="72" height="24" rx="12"/>
+                <text x="36" y="16" id="cntD">0人</text>
+              </g>
+            </g>
+            <!-- 堆场 -->
+            <g class="zone">
+              <rect class="zone-rect dim" x="740" y="300" width="120" height="220" rx="6"/>
+              <text class="zone-name" x="756" y="326">材料堆场</text>
+            </g>
+
+            <!-- 道路 -->
+            <line x1="440" y1="20" x2="440" y2="540" class="road"/>
+            <line x1="20" y1="280" x2="880" y2="280" class="road"/>
+
+            <!-- 塔吊 -->
+            <g class="tower" id="tower1" transform="translate(358,218)">
+              <circle r="14" class="tower-base"/>
+              <line x1="0" y1="0" x2="0" y2="-46" class="mast"/>
+              <g class="jib">
+                <animateTransform attributeName="transform" type="rotate" values="-40 0 -46;50 0 -46;-40 0 -46" keyTimes="0;0.5;1" dur="14s" repeatCount="indefinite"/>
+                <line x1="-34" y1="-46" x2="52" y2="-46" class="jib-line"/><circle cx="52" cy="-46" r="3" class="hook"/>
+              </g>
+              <text y="30" class="tower-txt">T1</text>
+            </g>
+            <g class="tower" id="tower2" transform="translate(802,218)">
+              <circle r="14" class="tower-base"/>
+              <line x1="0" y1="0" x2="0" y2="-46" class="mast"/>
+              <g class="jib">
+                <animateTransform attributeName="transform" type="rotate" values="50 0 -46;-40 0 -46;50 0 -46" keyTimes="0;0.5;1" dur="18s" begin="-6s" repeatCount="indefinite"/>
+                <line x1="-34" y1="-46" x2="52" y2="-46" class="jib-line"/><circle cx="52" cy="-46" r="3" class="hook"/>
+              </g>
+              <text y="30" class="tower-txt">T2</text>
+            </g>
+
+            <!-- 喷淋点 -->
+            <g id="sprays">
+              <g class="spray" transform="translate(60,60)"><circle class="s-core" r="4"/><circle class="s-wave" r="6"/><circle class="s-wave w2" r="6"/></g>
+              <g class="spray" transform="translate(840,60)"><circle class="s-core" r="4"/><circle class="s-wave" r="6"/><circle class="s-wave w2" r="6"/></g>
+              <g class="spray" transform="translate(60,500)"><circle class="s-core" r="4"/><circle class="s-wave" r="6"/><circle class="s-wave w2" r="6"/></g>
+              <g class="spray" transform="translate(840,500)"><circle class="s-core" r="4"/><circle class="s-wave" r="6"/><circle class="s-wave w2" r="6"/></g>
+              <g class="spray" transform="translate(450,280)"><circle class="s-core" r="4"/><circle class="s-wave" r="6"/><circle class="s-wave w2" r="6"/></g>
+            </g>
+
+            <!-- 大门 -->
+            <g transform="translate(430,548)"><rect x="-30" y="-6" width="60" height="12" rx="3" class="gate"/><text y="-12" class="gate-txt">南门 · 实名制闸机</text></g>
+
+            <!-- 工人定位点层 -->
+            <g id="workerLayer"></g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="panel" id="panelAttend">
+        <div class="panel-title">
+          <span class="t-icon">▤</span>班组出勤统计
+          <span class="sub" id="attendSummary">应到 -- 人 · 实到 -- 人 · 出勤率 --%</span>
+        </div>
+        <div class="panel-body"><div id="attendChart" class="chart"></div></div>
+      </div>
+    </section>
+
+    <!-- 右列：塔吊监控 + 报警记录 -->
+    <section class="col col-r">
+      <div class="panel" id="panelCrane">
+        <div class="panel-title">
+          <span class="t-icon">⚠</span>重大危险源监控 · 塔吊
+          <div class="crane-tabs">
+            <button class="tab active" data-crane="0">1#塔吊</button>
+            <button class="tab" data-crane="1">2#塔吊</button>
+          </div>
+        </div>
+        <div class="panel-body crane-body">
+          <div class="crane-status" id="craneStatus"><i class="dot ok"></i><span>运行正常 · 超限自动报警并拍照</span></div>
+          <div class="gauges">
+            <div class="gauge-box"><div id="gLoad" class="gauge"></div><div class="g-name">吊重 <small>限值 8.0t</small></div></div>
+            <div class="gauge-box"><div id="gWind" class="gauge"></div><div class="g-name">风速 <small>限值 12m/s</small></div></div>
+            <div class="gauge-box"><div id="gAngle" class="gauge"></div><div class="g-name">回转角度</div></div>
+          </div>
+          <div class="crane-meta" id="craneMeta">
+            <span>力矩 <b id="mMoment">--</b>%</span>
+            <span>幅度 <b id="mRadius">--</b>m</span>
+            <span>高度 <b id="mHeight">--</b>m</span>
+            <span>司机 <b id="mDriver">张建国</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelAlarm">
+        <div class="panel-title">
+          <span class="t-icon">♦</span>实时报警记录
+          <span class="sub">超限自动拍照取证</span>
+          <span class="alarm-count" id="alarmCount">0</span>
+        </div>
+        <div class="panel-body"><div id="alarmList" class="alarm-list">
+          <div class="alarm-empty">暂无报警 · 系统运行正常</div>
+        </div></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- 报警照片放大查看 -->
+<div id="photoModal" class="modal hidden">
+  <div class="modal-mask"></div>
+  <div class="modal-box">
+    <div class="modal-title">报警抓拍照片 <span id="modalClose">✕</span></div>
+    <img id="modalImg" alt="报警抓拍">
+  </div>
+</div>
+
+<script src="assets/echarts.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
